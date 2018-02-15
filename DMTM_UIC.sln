@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2024
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "DMTM_UIC", "DMTM_UIC\DMTM_UIC.pyproj", "{7D513B19-37A0-4717-B2A0-E604B47DE2EA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7D513B19-37A0-4717-B2A0-E604B47DE2EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D513B19-37A0-4717-B2A0-E604B47DE2EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {4F0B7776-FBE4-4F82-BC39-767CF8FCD3BC}
+	EndGlobalSection
+EndGlobal
