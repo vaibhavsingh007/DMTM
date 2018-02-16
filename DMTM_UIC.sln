@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "DMTM_UIC", "DMTM_UIC\DMTM_UIC.pyproj", "{7D513B19-37A0-4717-B2A0-E604B47DE2EA}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "MSApriori", "MSApriori\MSApriori.pyproj", "{38035A16-FFB2-4488-A568-62CD80841E12}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +15,8 @@ Global
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7D513B19-37A0-4717-B2A0-E604B47DE2EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7D513B19-37A0-4717-B2A0-E604B47DE2EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38035A16-FFB2-4488-A568-62CD80841E12}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38035A16-FFB2-4488-A568-62CD80841E12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
