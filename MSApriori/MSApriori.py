@@ -1,4 +1,3 @@
-
 def supportCount(itemset, T):    # returns count of itemset in T
     count = 0
 
@@ -160,28 +159,31 @@ def MSapriori(T, MS, sdc, not_together, must_have):
         k += 1
 
 
-T = [[20, 30, 80, 70, 50, 90],
-    [20, 10, 80, 70],
-    [10, 20, 80],
-    [20, 30, 80],
-    [20, 80],
-    [20, 30, 80, 70, 50, 90, 100, 120, 140]]
+#T = [[20, 30, 80, 70, 50, 90],
+#    [20, 10, 80, 70],
+#    [10, 20, 80],
+#    [20, 30, 80],
+#    [20, 80],
+#    [20, 30, 80, 70, 50, 90, 100, 120, 140]]
 
-MIS = {}
-MIS[10] = 0.43
-MIS[20] = 0.30
-MIS[30] = 0.30
-MIS[40] = 0.40
-MIS[50] = 0.40
-MIS[60] = 0.30
-MIS[70] = 0.20
-MIS[80] = 0.20
-MIS[90] = 0.20
-MIS[100] = 0.10
-MIS[120] = 0.20
-MIS[140] = 0.15
-SDC = 0.1
-cannot_be_together = [[20, 40], [70, 80]]
-must_have = [20, 40, 50, 70, 140]
+#MIS = {}
+#MIS[10] = 0.43
+#MIS[20] = 0.30
+#MIS[30] = 0.30
+#MIS[40] = 0.40
+#MIS[50] = 0.40
+#MIS[60] = 0.30
+#MIS[70] = 0.20
+#MIS[80] = 0.20
+#MIS[90] = 0.20
+#MIS[100] = 0.10
+#MIS[120] = 0.20
+#MIS[140] = 0.15
+#SDC = 0.1
+#cannot_be_together = [[20, 40], [70, 80]]
+#must_have = [20, 40, 50, 70, 140]
 
+from reader import Reader
+T = Reader.InputData
+MIS, SDC, cannot_be_together, must_have = Reader.ParameterData
 MSapriori(T, MIS, SDC, cannot_be_together, must_have)
