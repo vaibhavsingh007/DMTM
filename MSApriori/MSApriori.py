@@ -12,7 +12,7 @@ def supportCount(itemset, T):    # returns count of itemset in T
     return count
 
 support = lambda count, T: float(count) / len(T)
-sdcSatisfied = lambda min_count, max_count, T, sdc: support(max_count, T) - support(min_count, T) <= sdc
+sdcSatisfied = lambda min_count, max_count, T, sdc: abs(support(max_count, T) - support(min_count, T)) <= sdc
 
 def notTogetherSatisfied(not_together, c):   # 2D and 1D respectively
     for nt in not_together:
@@ -29,11 +29,6 @@ def mustHaveSatisfied(must_have, c):    # 2D and 1D respectively
         if i in c:
             return True
     return False
-
-# Helper for use with sdcSatisfied
-def getMinMaxCounts(c, T):  # c is 1D
-    sup_counts = [supportCount([i], T) for i in c]
-    return min(sup_counts), max(sup_counts)
 
 def initPass(M, T, MS):
     l = []
@@ -62,15 +57,11 @@ def level2_candidate_gen(L, L_counts, T, MS, sdc, not_together, must_have):
     for i,l in enumerate(L):
         if support(L_counts[i], T) >= MS[l]:
 
-            for i_,j in enumerate(L[i + 1:]):
+            for i1,j in enumerate(L[i + 1:]):
+                i_ = i1 + i + 1     # Managing the indices to access correct counts
                 if support(L_counts[i_], T) >= MS[l]:
                     # Check constraints
-                    min_count = L_counts[i] if L_counts[i] < L_counts[i_] else L_counts[i_]
-                    max_count = L_counts[i] if L_counts[i] > L_counts[i_] else L_counts[i_]
-
-                    if sdcSatisfied(min_count, max_count, T, sdc) and \
-                        notTogetherSatisfied(not_together, [l,j]) and \
-                        mustHaveSatisfied(must_have, [l,j]):
+                    if sdcSatisfied(L_counts[i], L_counts[i_], T, sdc):
                         C.append([l,j])
     return C
 
@@ -92,7 +83,8 @@ def MScandidate_gen(Fk_less1, MS, sdc, not_together, must_have):
             f1 = Fk_less1[i]    # TODO: verify if the swap needs to be considered as well.
             f2 = Fk_less1[j]
 
-            if f1[0:nk - 1] == f2[0:nk - 1] and MS[f1[-1]] < MS[f2[-1]]:
+            if f1[0:nk - 1] == f2[0:nk - 1] and f1[-1] < f2[-1] and \
+                sdcSatisfied(supportCount([f1[-1]], T), supportCount([f2[-1]], T), T, sdc):
                 c = [x for x in f1]     # Deep copy
                 c.append(f2[-1])        # f1 U f2
 
@@ -102,25 +94,24 @@ def MScandidate_gen(Fk_less1, MS, sdc, not_together, must_have):
                     if (c[0] in s or MS[c[0]] == MS[c[1]]) and s not in Fk_less1:
                         should_append = False
 
-                min_count, max_count = getMinMaxCounts(c, T)
-
                 # Check constraints
-                if should_append and \
-                sdcSatisfied(min_count, max_count, T, sdc) and \
-                notTogetherSatisfied(not_together, c) and \
-                mustHaveSatisfied(must_have, c):
+                if should_append:
                     C.append(c)
     return C
 
-def printFrequentkItemsets(Fk, k, item_counts, tail_counts):
+def printFrequentkItemsets(Fk, k, item_counts, tail_counts, not_together, must_have):
     print("Frequent %d-itemsets\n" % k)
+    counter = 0
 
     for i, itemset in enumerate(Fk):
+        if not notTogetherSatisfied(not_together, itemset) or not mustHaveSatisfied(must_have, itemset):
+            continue
         print("%d : %s" % (item_counts[i], itemset))
         if len(tail_counts) > 0:
             print("Tailcount = %d" % tail_counts[i])
+        counter += 1
 
-    print("\nTotal no. of frequent-%d itemsets = %d\n" % (k, len(Fk)))
+    print("\nTotal no. of frequent-%d itemsets = %d\n" % (k, counter))
 
 def MSapriori(T, MS, sdc, not_together, must_have):
     temp_s = set()
@@ -129,10 +120,17 @@ def MSapriori(T, MS, sdc, not_together, must_have):
     
     M = sorted(list(temp_s), cmp=lambda x,y: -1 if MS[x] - MS[y] < 0 else 1)     # Uses Python < 3.x
     L, L_counts = initPass(M, T, MS)
-    Fk = [x for i,x in enumerate(L) if float(L_counts[i]) / len(T) >= MS[x]]   # F_k-1
+    Fk = []   # F_k-1
+    Fk1_counts = []
     F = []      # For union over all Fk
 
-    printFrequentkItemsets(Fk, 1, L_counts, [])
+    # Populate F1
+    for i,x in enumerate(L):
+        if support(L_counts[i], T) >= MS[x]:
+            Fk.append([x])
+            Fk1_counts.append(L_counts[i])
+
+    printFrequentkItemsets(Fk, 1, Fk1_counts, [], not_together, must_have)
 
     k = 2
     while len(Fk) > 0:
@@ -150,11 +148,11 @@ def MSapriori(T, MS, sdc, not_together, must_have):
         t_counts_temp = []
 
         for i,c in enumerate(C):
-            if float(c_counts[i]) / len(T) > MS[c[0]]:
+            if support(c_counts[i], T) >= MS[c[0]]:
                 Fk.append(c)
                 c_counts_temp.append(c_counts[i])
                 t_counts_temp.append(tail_counts[i])
-        printFrequentkItemsets(Fk, k, c_counts_temp, t_counts_temp)
+        printFrequentkItemsets(Fk, k, c_counts_temp, t_counts_temp, not_together, must_have)
         [F.append(x) for x in Fk if x not in F]
         k += 1
 
@@ -182,7 +180,6 @@ def MSapriori(T, MS, sdc, not_together, must_have):
 #SDC = 0.1
 #cannot_be_together = [[20, 40], [70, 80]]
 #must_have = [20, 40, 50, 70, 140]
-
 from reader import Reader
 T = Reader.InputData
 MIS, SDC, cannot_be_together, must_have = Reader.ParameterData
