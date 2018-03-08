@@ -99,19 +99,29 @@ def MScandidate_gen(Fk_less1, MS, sdc, not_together, must_have):
                     C.append(c)
     return C
 
+import os
+result_file = "result.txt";
+
+try:
+    os.remove(result_file)
+except OSError:
+    pass
+
+file = open(result_file, "w") 
+ 
 def printFrequentkItemsets(Fk, k, item_counts, tail_counts, not_together, must_have):
-    print("Frequent %d-itemsets\n" % k)
+    file.write("\nFrequent %d-itemsets\n" % k)
     counter = 0
 
     for i, itemset in enumerate(Fk):
         if not notTogetherSatisfied(not_together, itemset) or not mustHaveSatisfied(must_have, itemset):
             continue
-        print("%d : %s" % (item_counts[i], itemset))
+        file.write("%d : %s\n" % (item_counts[i], itemset))
         if len(tail_counts) > 0:
-            print("Tailcount = %d" % tail_counts[i])
+            file.write("Tailcount = %d\n\n" % tail_counts[i])
         counter += 1
 
-    print("\nTotal no. of frequent-%d itemsets = %d\n" % (k, counter))
+    file.write("\nTotal no. of frequent-%d itemsets = %d\n" % (k, counter))
 
 def MSapriori(T, MS, sdc, not_together, must_have):
     temp_s = set()
@@ -184,3 +194,4 @@ from reader import Reader
 T = Reader.InputData
 MIS, SDC, cannot_be_together, must_have = Reader.ParameterData
 MSapriori(T, MIS, SDC, cannot_be_together, must_have)
+file.close()

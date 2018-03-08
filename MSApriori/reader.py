@@ -40,8 +40,8 @@ def extractParameterData(filename):
     return MS, sdc, not_together, must_have
 
 class Reader:
-    InputData = extractInputData(r'C:\Users\vaibh\Downloads\MsApriori Data\3\input-data.txt')
-    ParameterData = extractParameterData(r'C:\Users\vaibh\Downloads\MsApriori Data\3\parameter-file.txt')
+    InputData = extractInputData(r'C:\Users\vaibh\Downloads\test-data\large-data\data-2.txt')
+    ParameterData = extractParameterData(r'C:\Users\vaibh\Downloads\test-data\large-data\para2-2.txt')
 
     #C:\Users\vaibh\Downloads\MsApriori Data\2\
 
