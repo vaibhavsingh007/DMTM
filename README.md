@@ -1,7 +1,11 @@
 # DMTM
-Mini Projects on DMTM from the task assignments at UIC.
+Mini Projects on DMTM at UIC.
 
-Project Readme:
+Sentiment Analysis - Project Readme:
+=============
+TODO
+
+Rule-Association Mining - Project Readme:
 =============
 Two files: MSApriori.py, reader.py
 
