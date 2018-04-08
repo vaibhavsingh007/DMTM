@@ -1,4 +1,7 @@
 import sys
+'''
+This script performs data pre-processing'
+'''
 
 def extractInputData(filename):
     f = open(filename, 'r')
