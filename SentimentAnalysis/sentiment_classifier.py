@@ -95,17 +95,17 @@ def parse_out_text(text_string):
     return words
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-def get_features_and_labels(frame):
+def get_features_and_labels(frame, classes=None, binarize=False):
     '''
-    Transforms and scales the input data and returns numpy arrays for
+    Vectorizes and Transforms the input data and returns numpy arrays for
     training and testing inputs and targets.
+    If 'binarize=True', classes must be supplied.
     '''
 
     # Replace missing values with 0.0, or we can use
     # scikit-learn to calculate missing values (below)
     #frame[frame.isnull()] = 0.0
 
-    # Convert values to floats
     arr = np.array(frame)
 
     corpus = []
@@ -116,6 +116,11 @@ def get_features_and_labels(frame):
     vectorizer = TfidfVectorizer(stop_words='english')
     X = vectorizer.fit_transform(corpus)
     y = np.array(arr[:, -1], dtype=np.float)  # Use the last column as the target value
+
+    if binarize:
+        from sklearn.preprocessing import label_binarize
+        # Update class labels here
+        y = label_binarize(y, classes)
     
     # Use 80% of the data for training; test against the rest
     from sklearn.model_selection import train_test_split
@@ -124,7 +129,6 @@ def get_features_and_labels(frame):
     # Return the training and test sets
     return X_train, X_test, y_train, y_test
    
-
 # =====================================================================
 # We will calculate the P-R curve for each classifier
 from sklearn.metrics import precision_recall_curve, f1_score, accuracy_score
@@ -133,11 +137,79 @@ def execute(clf, clf_name, X_train, X_test, y_train, y_test):
     pred = clf.predict(X_test)
     score = f1_score(y_test, pred, average='weighted')
     acc = accuracy_score(y_test, pred)
+
     # Generate the P-R curve
     y_prob = clf.decision_function(X_test)
-    precision, recall, _ = [0,0,0]  #precision_recall_curve(y_test, y_prob)
+    precision, recall, avg = get_per_class_pr_re_and_avg(y_test, y_prob)
+
     # Include the score in the title
-    return '{} (F1 score={:.3f}, Accuracy={:.4f})'.format(clf_name, score, acc), precision, recall
+    print('{} (F1 score={:.3f}, Accuracy={:.4f})'.format(clf_name, score, acc))
+    print('Average precision score, micro-averaged over all classes: {0:0.2f}'
+          .format(avg["micro"]))
+    return precision, recall, avg
+
+def get_per_class_pr_re_and_avg(Y_test, y_score):
+    from sklearn.metrics import precision_recall_curve
+    from sklearn.metrics import average_precision_score
+
+    # For each class
+    precision = dict()
+    recall = dict()
+    average_precision = dict()
+
+    for i in range(Y_test.shape[1]):
+        precision[i], recall[i], _ = precision_recall_curve(Y_test[:, i], y_score[:, i])
+        average_precision[i] = average_precision_score(Y_test[:, i], y_score[:, i])
+
+    # A "micro-average": quantifying score on all classes jointly
+    precision["micro"], recall["micro"], _ = precision_recall_curve(Y_test.ravel(),
+        y_score.ravel())
+    average_precision["micro"] = average_precision_score(Y_test, y_score,
+                                                         average="micro")
+    return precision, recall, average_precision
+
+def plot_avg_p_r_curves(precision, recall, average_precision):
+    plt.figure()
+    plt.step(recall['micro'], precision['micro'], color='b', alpha=0.2,
+             where='post')
+    plt.fill_between(recall["micro"], precision["micro"], step='post', alpha=0.2,
+                     color='b')
+
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.ylim([0.0, 1.05])
+    plt.xlim([0.0, 1.0])
+    plt.title('Average precision score, micro-averaged over all classes: AP={0:0.2f}'
+                .format(average_precision["micro"]))
+
+def plot_per_class_p_r_curves(precision, recall, average_precision, classes):
+    from itertools import cycle
+    # setup plot details
+    colors = cycle(['navy', 'turquoise', 'darkorange', 'cornflowerblue', 'teal'])
+
+    plt.figure(figsize=(7, 8))
+    lines = []
+    labels = []
+    l, = plt.plot(recall["micro"], precision["micro"], color='gold', lw=2)
+    lines.append(l)
+    labels.append('micro-average Precision-recall (area = {0:0.2f})'
+                  ''.format(average_precision["micro"]))
+
+    for i, color in zip(range(len(classes)), colors):
+        l, = plt.plot(recall[i], precision[i], color=color, lw=2)
+        lines.append(l)
+        labels.append('Precision-recall for class {0} (area = {1:0.2f})'
+                      ''.format(classes[i], average_precision[i]))
+
+    fig = plt.gcf()
+    fig.subplots_adjust(bottom=0.25)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
+    plt.title('Extension of Precision-Recall curve to multi-class')
+    plt.legend(lines, labels, loc=(0, -.38), prop=dict(size=14))
+    plt.show()
 
 def plot(results):
     '''
@@ -196,6 +268,7 @@ if __name__ == '__main__':
     # Import some classifiers to test
     from sklearn.svm import LinearSVC, NuSVC
     from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.multiclass import OneVsRestClassifier
 
     # Download the data set from URL
     print("Downloading data from {}".format(URL))
@@ -203,14 +276,15 @@ if __name__ == '__main__':
 
     # Process data into feature and label arrays
     print("Processing {} samples with {} attributes".format(len(frame.index), len(frame.columns)))
-    X_train, X_test, y_train, y_test = get_features_and_labels(frame)
+    X_train, X_test, y_train, y_test = get_features_and_labels(frame, [-1,0,1], True)
 
     # Evaluate multiple classifiers on the data
     print("Evaluating classifiers")
     classifiers = []
-    classifiers.append([LinearSVC(C=1), "LinearSVC"])
-    classifiers.append([NuSVC(kernel='rbf', nu=0.5, gamma=1e-3), "NuSVC"])
-    classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
+    classifiers.append([OneVsRestClassifier(LinearSVC()), "OVR LinearSVC"])
+    #classifiers.append([LinearSVC(C=1), "LinearSVC"])
+    #classifiers.append([NuSVC(kernel='rbf', nu=0.5, gamma=1e-3), "NuSVC"])
+    #classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
 
     results = []
 
@@ -219,4 +293,7 @@ if __name__ == '__main__':
 
     # Display the results
     print("Plotting the results")
-    plot(results)
+    #plot(results)
+    for r in results:
+        plot_avg_p_r_curves(r[0], r[1], r[2])
+        plot_per_class_p_r_curves(r[0], r[1], r[2], [-1,0,1])   # Update classes
