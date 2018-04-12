@@ -1,7 +1,7 @@
 import numpy as np
 from pandas import read_table
 
-URL = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 1_train.csv'
+URL = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 2_train.csv'
 
 def download_data():
     '''
