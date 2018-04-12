@@ -20,6 +20,12 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="plotting.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="preprocessing.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="sentiment_classifier.py" />
     <Compile Include="spam_classifier.py" />
   </ItemGroup>
