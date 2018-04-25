@@ -20,6 +20,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="extras.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="plotting.py">
       <SubType>Code</SubType>
     </Compile>
@@ -28,6 +31,9 @@
     </Compile>
     <Compile Include="sentiment_classifier.py" />
     <Compile Include="spam_classifier.py" />
+    <Compile Include="temp.py">
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

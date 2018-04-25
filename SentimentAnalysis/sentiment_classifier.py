@@ -20,11 +20,10 @@ correct.
 # rather than displaying interactive UI.
 #import matplotlib
 #matplotlib.use('Agg')
-
 import numpy as np
 from preprocessing import *
 from plotting import *
-
+import sys  # For exiting main
 try:
     # [OPTIONAL] Seaborn makes plots nicer
     import seaborn
@@ -41,7 +40,12 @@ def execute(clf, clf_name, X_train, X_test, y_train, y_test):
     acc = accuracy_score(y_test, pred)
 
     # Generate the P-R curve
-    y_prob = clf.decision_function(X_test)
+    try:
+        y_prob = clf.decision_function(X_test)
+    except AttributeError:
+        # Handle BernoilliNB
+        y_prob = clf.predict_proba(X_test)
+
     precision, recall, avg = get_per_class_pr_re_and_avg(y_test, y_prob)
 
     # Include the score in the title
@@ -63,45 +67,61 @@ def get_per_class_pr_re_and_avg(Y_test, y_score):
         average_precision[i] = average_precision_score(Y_test[:, i], y_score[:, i])
 
     # A "micro-average": quantifying score on all classes jointly
-    precision["micro"], recall["micro"], _ = precision_recall_curve(Y_test.ravel(),
-        y_score.ravel())
-    average_precision["micro"] = average_precision_score(Y_test, y_score,
-                                                         average="micro")
+    precision["micro"], recall["micro"], _ = precision_recall_curve(Y_test.ravel(), y_score.ravel())
+    average_precision["micro"] = average_precision_score(Y_test, y_score, average="micro")
     return precision, recall, average_precision
 
 # =====================================================================
 
-
 if __name__ == '__main__':
     # Import some classifiers to test
-    from sklearn.svm import LinearSVC, NuSVC
+    from sklearn.svm import LinearSVC, NuSVC, SVC
+    from sklearn.naive_bayes import BernoulliNB
     from sklearn.ensemble import AdaBoostClassifier
     from sklearn.multiclass import OneVsRestClassifier
+    from sklearn.model_selection import GridSearchCV
+
+    url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 2_train.csv'
 
     # Download the data set from URL
-    print("Downloading data from {}".format(URL))
-    frame = download_data()
+    print("Downloading data from {}".format(url))
+    frame = download_data(url)
 
     # Process data into feature and label arrays
     print("Processing {} samples with {} attributes".format(len(frame.index), len(frame.columns)))
-    X_train, X_test, y_train, y_test = get_features_and_labels(frame, [-1,0,1], True)
+
+    X, y = transform_features_and_labels(frame, [-1,0,1], True)
+
+    # Use 80% of the data for training, using CV; test against the rest
+    from sklearn.model_selection import train_test_split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+    # Uncomment the following to test for using explicit 10-Fold CV and SVM (linear).
+    # Read method description for details.
+    #from extras import execute_using_cv
+    #execute_using_cv(X, y)
+    #sys.exit(0)
 
     # Evaluate multiple classifiers on the data
     print("Evaluating classifiers")
     classifiers = []
-    classifiers.append([OneVsRestClassifier(LinearSVC()), "OVR LinearSVC"])
-    #classifiers.append([LinearSVC(C=1), "LinearSVC"])
-    #classifiers.append([NuSVC(kernel='rbf', nu=0.5, gamma=1e-3), "NuSVC"])
-    #classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
+    classifiers.append([LinearSVC(C=1.0), "LinearSVC"])
+    classifiers.append([BernoulliNB(), "BernoulliNB"])
+    classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
+
+    param_grid = {'C': np.logspace(-2, 1, 10) }
+                  #'gamma': [0.0005, 0.001, 0.005, 0.01, 0.1, 1.0],     # Use for testing rbf, poly
+                 #'degree': [1,2,3] }
+    clf = GridSearchCV(SVC(kernel='linear', class_weight='balanced'), param_grid, cv=5)
+    classifiers.append([clf, "Linear SVM with GridSearchCV (5-fold)"])
 
     results = []
 
     for clf in classifiers:
-        results.append(execute(clf[0], clf[1], X_train, X_test, y_train, y_test))
+        results.append(execute(OneVsRestClassifier(clf[0]), clf[1], X_train, X_test, y_train, y_test))
 
     # Display the results
-    print("Plotting the results")
-    #plot(results)
-    for r in results:
-        plot_avg_p_r_curves(r[0], r[1], r[2])
-        plot_per_class_p_r_curves(r[0], r[1], r[2], [-1,0,1])   # Update classes
+    #print("Plotting the results")
+    #for r in results:
+    #    plot_avg_p_r_curves(r[0], r[1], r[2])
+    #    plot_per_class_p_r_curves(r[0], r[1], r[2], [-1,0,1])   # Update classes
