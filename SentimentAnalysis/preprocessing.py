@@ -55,9 +55,9 @@ def parse_out_text(text_string):
     text_string = text_string.replace("\t"," ")
     text_string = text_string.replace("  ", " ")
     text_string = text_string.translate(''.maketrans("", "", string.punctuation))
-    stemmer = SnowballStemmer("english")
-    words = " ".join([stemmer.stem(w.strip()) for w in text_string.split(" ")])
-    return words
+    #stemmer = SnowballStemmer("english")   # Skipped stemming for now (it didn't improve the acc.)
+    #words = " ".join([stemmer.stem(w.strip()) for w in text_string.split(" ")])
+    return text_string
 
 from nltk.parse.corenlp import CoreNLPDependencyParser
 dep_parser = CoreNLPDependencyParser(url='http://localhost:9000')
@@ -111,40 +111,39 @@ def extract_dependencies(parsed_triples, aspect, extracted_deps, depth=0, max_de
     return
 
 
-def transform_features_and_labels(frame, classes=None, binarize=False):
+def transform_features_and_labels(frame, classes=None, binarize=False, skip_label=False):
     '''
     Extracts aspect dependencies, vectorizes and Transforms the input data 
     and returns numpy arrays for training and testing inputs and targets.
     If 'binarize=True', classes must be supplied.
     '''
-    
     arr = np.array(frame)
     corpus = []
 
     #print("Extracting aspect dependencies..")
-    print("POS tagging and lemmatizing..")
+    print("Cleaning, POS tagging and lemmatizing..")
     for d in np.take(arr, [1,2], axis=1):
-        #parsed_text = parse_out_text(d)
+        parsed_text = parse_out_text(d[0])
         #aspect_dependencies = parse_dependencies(d[0].replace("[comma]",","), d[1])
 
         # Add aspect as well
         #aspect_dependencies.append(d[1])
 
         # Lemmatize (Document->Sentences->Tokens->POS->Lemmas)
-        corpus.append(lemmatize(d[0]))  #" ".join(aspect_dependencies)
+        corpus.append(lemmatize(parsed_text))  #" ".join(aspect_dependencies)
 
     # Vectorize (TODO: Try WordToVec)
     print("Vectorizing..")
     vectorizer = TfidfVectorizer()
     X = vectorizer.fit_transform(corpus)
-    y = np.array(arr[:, -1], dtype=np.float)  # Use the last column as the target value
+    y = np.zeros(X.shape[0]) if skip_label else np.array(arr[:, -1], dtype=np.float)  # Use the last column as the target value
 
     if binarize:
         from sklearn.preprocessing import label_binarize
         # Update class labels here
         y = label_binarize(y, classes)
 
-    return X, y
+    return X, y, vectorizer.get_feature_names()
 
 import nltk
 #nltk.download('wordnet')

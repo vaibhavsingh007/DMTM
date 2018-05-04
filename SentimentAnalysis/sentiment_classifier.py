@@ -91,7 +91,60 @@ if __name__ == '__main__':
     from sklearn.multiclass import OneVsRestClassifier
     from sklearn.model_selection import GridSearchCV
 
-    url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 1_train.csv'
+    url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 2_train.csv'
+
+    #================= START: DEMO SETUP ===================================================
+    ''' Remove this section when not using for demo '''
+
+    test_url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\Data-2_test.csv'
+
+    # Download the data set from URL
+    print("Downloading training data from {}".format(url))
+    frame_train = download_data(url)
+
+    # Process data into feature and label arrays
+    print("Processing {} training samples with {} attributes".format(len(frame_train.index), len(frame_train.columns)))
+    X_train, y_train, fnames_trian = transform_features_and_labels(frame_train)
+
+    # Download the data set from URL
+    print("Downloading test data from {}".format(test_url))
+    frame_test = download_data(test_url)
+
+    # Process data into feature and label arrays
+    print("Processing {} test samples with {} attributes".format(len(frame_test.index), len(frame_test.columns)))
+    X_test, y_test, fnames_test = transform_features_and_labels(frame_test, skip_label=True)
+
+    # Keep intersection of features in train and test (for dimension compatibility)
+    i_keep_train = np.nonzero(np.in1d(fnames_trian, fnames_test))[0]
+    i_keep_test = np.nonzero(np.in1d(fnames_test, fnames_trian))[0]
+    X_train = X_train[:, i_keep_train]
+    X_test = X_test[:, i_keep_test]
+
+    print("Training classifier..")
+    clf = LinearSVC()
+    clf.fit(X_train, y_train)
+    pred = clf.predict(X_test)
+    score = f1_score(y_test, pred, average='weighted')
+    acc = accuracy_score(y_test, pred)
+    print('{} (F1 score={:.3f}, Accuracy={:.4f})'.format("LinearSVC", score, acc))
+
+    print("Writing predictions to file..")
+    import os
+    result_file = "result.txt";
+    try:
+        os.remove(result_file)
+    except OSError:
+        pass
+    file = open(result_file, "w") 
+    frame_test_arr = np.array(frame_test)
+
+    for i,p in enumerate(pred):
+        file.write("{};;{}\n".format(frame_test_arr[i][0], p))
+    file.close()
+
+    sys.exit(0)
+
+    #================= END: DEMO SETUP ===================================================
 
     # Download the data set from URL
     print("Downloading data from {}".format(url))
@@ -100,7 +153,7 @@ if __name__ == '__main__':
     # Process data into feature and label arrays
     print("Processing {} samples with {} attributes".format(len(frame.index), len(frame.columns)))
 
-    X, y = transform_features_and_labels(frame, [-1,0,1])
+    X, y, _ = transform_features_and_labels(frame, [-1,0,1])
 
     # Use 80% of the data for training, using CV; test against the rest
     from sklearn.model_selection import train_test_split
@@ -115,13 +168,13 @@ if __name__ == '__main__':
     # Evaluate multiple classifiers on the data
     print("Evaluating classifiers")
     classifiers = []
-    classifiers.append([LinearSVC(C=5.0), "LinearSVC"])
+    classifiers.append([LinearSVC(), "LinearSVC"])
     classifiers.append([BernoulliNB(), "BernoulliNB"])
     classifiers.append([MultinomialNB(), "MultiNB"])
     classifiers.append([KNeighborsClassifier(n_neighbors=10), "kNN"])
     classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
     classifiers.append([RandomForestClassifier(n_estimators=100), "Random forest"])
-    classifiers.append([SVC(kernel='rbf', class_weight='balanced', decision_function_shape='ovo'), "Baseline ovo rbf SVM"])
+    #classifiers.append([SVC(kernel='rbf', class_weight='balanced', decision_function_shape='ovo'), "Baseline ovo rbf SVM"])
 
     param_grid = {'C': np.logspace(-2, 1, 10),
                   #'kernel': ['rbf', 'linear', 'poly'],
