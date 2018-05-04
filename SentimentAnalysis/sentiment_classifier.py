@@ -33,8 +33,15 @@ except ImportError:
 # =====================================================================
 # We will calculate the P-R curve for each classifier
 from sklearn.metrics import precision_recall_curve, f1_score, accuracy_score
-def execute(clf, clf_name, X_train, X_test, y_train, y_test):
+def execute(clf, clf_name, X_train, X_test, y_train, y_test, with_ovr=False):
     clf.fit(X_train, y_train)
+
+    # Print best estimator in case of GridSearchCV
+    try:
+        print("{}".format(clf.best_estimator_))
+    except:
+        pass
+
     pred = clf.predict(X_test)
     score = f1_score(y_test, pred, average='weighted')
     acc = accuracy_score(y_test, pred)
@@ -46,11 +53,13 @@ def execute(clf, clf_name, X_train, X_test, y_train, y_test):
         # Handle BernoilliNB
         y_prob = clf.predict_proba(X_test)
 
-    precision, recall, avg = get_per_class_pr_re_and_avg(y_test, y_prob)
+    precision, recall, avg = get_per_class_pr_re_and_avg(y_test, y_prob) if with_ovr else (0.,0.,0.)
 
     # Include the score in the title
     print('{} (F1 score={:.3f}, Accuracy={:.4f})'.format(clf_name, score, acc))
-    print('Average precision score, micro-averaged over all classes: {0:0.2f}'.format(avg["micro"]))
+
+    if with_ovr:
+        print('Average precision score, micro-averaged over all classes: {0:0.2f}'.format(avg["micro"]))
     return precision, recall, avg
 
 def get_per_class_pr_re_and_avg(Y_test, y_score):
@@ -76,12 +85,13 @@ def get_per_class_pr_re_and_avg(Y_test, y_score):
 if __name__ == '__main__':
     # Import some classifiers to test
     from sklearn.svm import LinearSVC, NuSVC, SVC
-    from sklearn.naive_bayes import BernoulliNB
-    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.naive_bayes import BernoulliNB, MultinomialNB
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.ensemble import AdaBoostClassifier, RandomForestClassifier
     from sklearn.multiclass import OneVsRestClassifier
     from sklearn.model_selection import GridSearchCV
 
-    url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 2_train.csv'
+    url = r'C:\Users\vaibh\Source\Repos\DMTM_UIC\project_2_train\data 1_train.csv'
 
     # Download the data set from URL
     print("Downloading data from {}".format(url))
@@ -90,7 +100,7 @@ if __name__ == '__main__':
     # Process data into feature and label arrays
     print("Processing {} samples with {} attributes".format(len(frame.index), len(frame.columns)))
 
-    X, y = transform_features_and_labels(frame, [-1,0,1], True)
+    X, y = transform_features_and_labels(frame, [-1,0,1])
 
     # Use 80% of the data for training, using CV; test against the rest
     from sklearn.model_selection import train_test_split
@@ -105,20 +115,26 @@ if __name__ == '__main__':
     # Evaluate multiple classifiers on the data
     print("Evaluating classifiers")
     classifiers = []
-    classifiers.append([LinearSVC(C=1.0), "LinearSVC"])
+    classifiers.append([LinearSVC(C=5.0), "LinearSVC"])
     classifiers.append([BernoulliNB(), "BernoulliNB"])
+    classifiers.append([MultinomialNB(), "MultiNB"])
+    classifiers.append([KNeighborsClassifier(n_neighbors=10), "kNN"])
     classifiers.append([AdaBoostClassifier(n_estimators=50, learning_rate=1.0, algorithm='SAMME.R'), "AdaBoost"])
+    classifiers.append([RandomForestClassifier(n_estimators=100), "Random forest"])
+    classifiers.append([SVC(kernel='rbf', class_weight='balanced', decision_function_shape='ovo'), "Baseline ovo rbf SVM"])
 
-    param_grid = {'C': np.logspace(-2, 1, 10) }
+    param_grid = {'C': np.logspace(-2, 1, 10),
+                  #'kernel': ['rbf', 'linear', 'poly'],
                   #'gamma': [0.0005, 0.001, 0.005, 0.01, 0.1, 1.0],     # Use for testing rbf, poly
-                 #'degree': [1,2,3] }
-    clf = GridSearchCV(SVC(kernel='linear', class_weight='balanced'), param_grid, cv=5)
-    classifiers.append([clf, "Linear SVM with GridSearchCV (5-fold)"])
+                 'degree': [1,2,3]}
+    svm = GridSearchCV(SVC(kernel='linear', class_weight='balanced'), param_grid, cv=5)
+    #classifiers.append([svm, "SVM with GridSearchCV (5-fold)"])
 
     results = []
 
     for clf in classifiers:
-        results.append(execute(OneVsRestClassifier(clf[0]), clf[1], X_train, X_test, y_train, y_test))
+        results.append(execute(clf[0], clf[1], X_train, X_test, y_train, y_test))
+        #results.append(execute(OneVsRestClassifier(clf[0]), clf[1], X_train, X_test, y_train, y_test, True))  # Use with label-binarized classes.
 
     # Display the results
     #print("Plotting the results")

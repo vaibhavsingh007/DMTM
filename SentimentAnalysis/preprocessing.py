@@ -21,16 +21,16 @@ def download_data(url):
 
     # Specify the separator in the data
     sep=',',            # comma separated values
-    #sep='\t', # tab separated values        #sep='\t', # tab separated values
-                    #sep=' ', # space separated values                        #sep=' ', # space separated values
+    #sep='\t', # tab separated values
+    #sep=' ', # space separated values
 
     # Ignore spaces after the separator
     skipinitialspace=True,
 
     # Generate row labels from each row number
     index_col=None,
-    #index_col=0, # use the first column as row labels        #index_col=0, # use the first column as row labels
-    #index_col=-1, # use the last column as row labels        #index_col=-1, # use the last column as row labels
+    #index_col=0, # use the first column as row labels
+    #index_col=-1, # use the last column as row labels
 
     # Generate column headers row from each column number
     #header=None,
@@ -113,29 +113,25 @@ def extract_dependencies(parsed_triples, aspect, extracted_deps, depth=0, max_de
 
 def transform_features_and_labels(frame, classes=None, binarize=False):
     '''
-    Vectorizes and Transforms the input data and returns numpy arrays for
-    training and testing inputs and targets.
+    Extracts aspect dependencies, vectorizes and Transforms the input data 
+    and returns numpy arrays for training and testing inputs and targets.
     If 'binarize=True', classes must be supplied.
     '''
-    import nltk
-    #nltk.download('wordnet')
-    from nltk.stem.wordnet import WordNetLemmatizer
-    lmtzr = WordNetLemmatizer()
-
+    
     arr = np.array(frame)
     corpus = []
 
-    print("Extracting aspect dependencies..")
+    #print("Extracting aspect dependencies..")
+    print("POS tagging and lemmatizing..")
     for d in np.take(arr, [1,2], axis=1):
         #parsed_text = parse_out_text(d)
-        aspect_dependencies = parse_dependencies(d[0].replace("[comma]",","), d[1])
+        #aspect_dependencies = parse_dependencies(d[0].replace("[comma]",","), d[1])
 
         # Add aspect as well
-        aspect_dependencies.append(d[1])
+        #aspect_dependencies.append(d[1])
 
-        # Lemmatize
-        #parsed_text = " ".join([lmtzr.lemmatize(w) for w in aspect_dependencies])
-        corpus.append(" ".join(aspect_dependencies))  #" ".join(aspect_dependencies)
+        # Lemmatize (Document->Sentences->Tokens->POS->Lemmas)
+        corpus.append(lemmatize(d[0]))  #" ".join(aspect_dependencies)
 
     # Vectorize (TODO: Try WordToVec)
     print("Vectorizing..")
@@ -149,3 +145,29 @@ def transform_features_and_labels(frame, classes=None, binarize=False):
         y = label_binarize(y, classes)
 
     return X, y
+
+import nltk
+#nltk.download('wordnet')
+from nltk.tokenize import word_tokenize
+from nltk.stem.wordnet import WordNetLemmatizer
+lmtzr = WordNetLemmatizer()
+def lemmatize(text):
+    #POS tag and lemmatize text
+    # See: https://www.ling.upenn.edu/courses/Fall_2003/ling001/penn_treebank_pos.html
+    tokens = word_tokenize(text)
+    pos_tagged = nltk.pos_tag(tokens)
+
+    return " ".join([lmtzr.lemmatize(w[0], pos=get_wordnet_pos(w[1])) for w in pos_tagged])
+
+from nltk.corpus import wordnet
+def get_wordnet_pos(treebank_tag):
+    if treebank_tag.startswith('J'):
+        return wordnet.ADJ
+    elif treebank_tag.startswith('V'):
+        return wordnet.VERB
+    elif treebank_tag.startswith('N'):
+        return wordnet.NOUN
+    elif treebank_tag.startswith('R'):
+        return wordnet.ADV
+    else:
+        return wordnet.NOUN     
