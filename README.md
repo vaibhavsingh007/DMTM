@@ -1,5 +1,6 @@
 # DMTM
 Mini Projects on DMTM at UIC.
+Detailed documentation available in respective project directories.
 
 Sentiment Analysis - Project Readme:
 =============
